@@ -1341,7 +1341,7 @@ export default function Sites() {
               </div>
             ))}
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-              按 key/value 逐条填写。整行留空会自动忽略；同名请求头不允许重复；请求本身显式传入的请求头优先级更高。
+              按 key/value 逐条填写。整行留空会自动忽略；同名请求头不允许重复；站点自定义请求头会覆盖请求本身显式传入的同名请求头。
             </div>
             {isEditing && (
               <div style={{ marginTop: 16, padding: '14px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg)' }}>
