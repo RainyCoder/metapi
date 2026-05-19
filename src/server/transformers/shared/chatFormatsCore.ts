@@ -22,6 +22,7 @@ export type StreamTransformContext = {
   created: number;
   roleSent: boolean;
   doneSent: boolean;
+  choiceOutputSeen: boolean;
   toolCalls: Record<number, { id?: string; name?: string; arguments?: string }>;
   responsesToolCallIndexByOutputIndex: Record<number, number>;
   responsesToolCallIndexById: Record<string, number>;
@@ -278,6 +279,7 @@ export function createStreamTransformContext(modelName: string): StreamTransform
     created: Math.floor(Date.now() / 1000),
     roleSent: false,
     doneSent: false,
+    choiceOutputSeen: false,
     toolCalls: {},
     responsesToolCallIndexByOutputIndex: {},
     responsesToolCallIndexById: {},
@@ -1453,7 +1455,12 @@ export function normalizeUpstreamStreamEvent(
     const choice = payload.choices[0] ?? {};
     const delta = isRecord(choice?.delta) ? choice.delta : {};
     const deltaParsed = extractStreamingTextAndReasoning(delta.content ?? delta, context.thinkTagParser);
-    const messageParsed = extractStreamingTextAndReasoning(choice?.message?.content ?? '', context.thinkTagParser);
+    const isTerminalChatCompletionSnapshot = payload.object === 'chat.completion';
+    const messageParsed = (
+      isTerminalChatCompletionSnapshot && context.choiceOutputSeen
+        ? { content: '', reasoning: '' }
+        : extractStreamingTextAndReasoning(choice?.message?.content ?? '', context.thinkTagParser)
+    );
 
     const rawContentDelta =
       deltaParsed.content
@@ -1509,6 +1516,10 @@ export function normalizeUpstreamStreamEvent(
         };
       })
       .filter((item): item is NonNullable<typeof item> => !!item);
+
+    if (contentDelta || reasoningDelta || toolCallDeltas.length > 0) {
+      context.choiceOutputSeen = true;
+    }
 
     return {
       role: (delta as any).role === 'assistant' ? 'assistant' : undefined,

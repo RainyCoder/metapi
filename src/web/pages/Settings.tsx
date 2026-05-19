@@ -225,6 +225,14 @@ function createEmptyPayloadRuleDrafts(): PayloadRulesEditorDrafts {
   };
 }
 
+function normalizeModelNameList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const normalized = value
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean);
+  return Array.from(new Set(normalized));
+}
+
 function formatPayloadRuleSectionForEditor(value: unknown): string {
   if (value == null) return '';
   if (Array.isArray(value) && value.length <= 0) return '';
@@ -661,6 +669,7 @@ export default function Settings() {
       ]);
       setMaskedToken(authInfo.masked || '****');
       const routeCooldownInput = resolveRouteCooldownInput(runtimeInfo.tokenRouterFailureCooldownMaxSec);
+      const normalizedAllowedModels = normalizeModelNameList(runtimeInfo.globalAllowedModels);
       setRuntime({
         checkinCron: runtimeInfo.checkinCron || '0 8 * * *',
         checkinScheduleMode: runtimeInfo.checkinScheduleMode === 'interval' ? 'interval' : 'cron',
@@ -707,11 +716,11 @@ export default function Settings() {
           : [],
         currentAdminIp: typeof runtimeInfo.currentAdminIp === 'string' ? runtimeInfo.currentAdminIp : '',
         globalBlockedBrands: Array.isArray(runtimeInfo.globalBlockedBrands) ? runtimeInfo.globalBlockedBrands : [],
-        globalAllowedModels: Array.isArray(runtimeInfo.globalAllowedModels) ? runtimeInfo.globalAllowedModels : [],
+        globalAllowedModels: normalizedAllowedModels,
       });
       setSavedModelAvailabilityProbeEnabled(!!runtimeInfo.modelAvailabilityProbeEnabled);
       setBlockedBrands(Array.isArray(runtimeInfo.globalBlockedBrands) ? runtimeInfo.globalBlockedBrands : []);
-      setAllowedModels(Array.isArray(runtimeInfo.globalAllowedModels) ? runtimeInfo.globalAllowedModels : []);
+      setAllowedModels(normalizedAllowedModels);
       setProxyErrorKeywordsText(
         Array.isArray(runtimeInfo.proxyErrorKeywords)
           ? runtimeInfo.proxyErrorKeywords.filter((item: unknown) => typeof item === 'string').join('\n')
@@ -756,7 +765,7 @@ export default function Settings() {
     api.getModelTokenCandidates()
       .then((res: any) => {
         const models = res?.models || {};
-        const modelNames = Object.keys(models);
+        const modelNames = normalizeModelNameList(Object.keys(models));
         setAvailableModels(modelNames.sort());
       })
       .catch(() => setAvailableModels([]));
@@ -1099,8 +1108,9 @@ export default function Settings() {
   const handleSaveAllowedModels = async () => {
     setSavingAllowedModels(true);
     try {
-      const res = await api.updateRuntimeSettings({ globalAllowedModels: allowedModels });
-      const resolved = Array.isArray(res?.globalAllowedModels) ? res.globalAllowedModels : allowedModels;
+      const normalizedAllowedModels = normalizeModelNameList(allowedModels);
+      const res = await api.updateRuntimeSettings({ globalAllowedModels: normalizedAllowedModels });
+      const resolved = Array.isArray(res?.globalAllowedModels) ? normalizeModelNameList(res.globalAllowedModels) : normalizedAllowedModels;
       setRuntime((prev) => ({ ...prev, globalAllowedModels: resolved }));
       setAllowedModels(resolved);
       toast.success('模型白名单设置已保存');

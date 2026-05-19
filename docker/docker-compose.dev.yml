@@ -1,0 +1,27 @@
+services:
+  metapi-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: metapi-dev
+    working_dir: /app
+    ports:
+      - "4000:4000"
+      - "5173:5173"
+    volumes:
+      - ..:/app
+      - metapi-dev-node-modules:/app/node_modules
+    environment:
+      AUTH_TOKEN: "admin"
+      PROXY_TOKEN: "tokenadmin"
+      PORT: 4000
+      DATA_DIR: /app/data
+      TZ: ${TZ:-Asia/Shanghai}
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+volumes:
+  metapi-dev-node-modules:

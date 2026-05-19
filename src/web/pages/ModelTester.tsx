@@ -456,7 +456,12 @@ const parseSseBlock = (block: string): { event: string; data: string | null } =>
   };
 };
 
-const parseAnyStreamDelta = (eventPayload: any): {
+export const parseAnyStreamDelta = (
+  eventPayload: any,
+  options?: {
+    allowTerminalMessageFallback?: boolean;
+  },
+): {
   contentDelta?: string;
   reasoningDelta?: string;
   done?: boolean;
@@ -466,12 +471,15 @@ const parseAnyStreamDelta = (eventPayload: any): {
   if (Array.isArray(eventPayload.choices)) {
     const choice = eventPayload.choices[0];
     const delta = choice?.delta || {};
+    const isFinalChatCompletion = eventPayload.object === 'chat.completion';
     const reasoningDelta = typeof delta.reasoning_content === 'string'
       ? delta.reasoning_content
       : typeof delta.reasoning === 'string'
         ? delta.reasoning
         : '';
-    const contentDelta = typeof delta.content === 'string'
+    const contentDelta = (isFinalChatCompletion && options?.allowTerminalMessageFallback === false)
+      ? ''
+      : typeof delta.content === 'string'
       ? delta.content
       : typeof choice?.message?.content === 'string'
         ? choice.message.content
@@ -1605,7 +1613,9 @@ export default function ModelTester() {
             throw new Error(extractErrorMessage(eventPayload));
           }
 
-          const delta = parseAnyStreamDelta(eventPayload);
+          const delta = parseAnyStreamDelta(eventPayload, {
+            allowTerminalMessageFallback: !hasAnyContent && !hasAnyReasoning,
+          });
           if (typeof delta.reasoningDelta === 'string' && delta.reasoningDelta.trim().length > 0) {
             hasAnyReasoning = true;
           }
@@ -1754,7 +1764,9 @@ export default function ModelTester() {
             throw new Error(extractErrorMessage(eventPayload));
           }
 
-          const delta = parseAnyStreamDelta(eventPayload);
+          const delta = parseAnyStreamDelta(eventPayload, {
+            allowTerminalMessageFallback: !hasAnyContent && !hasAnyReasoning,
+          });
           if (typeof delta.reasoningDelta === 'string' && delta.reasoningDelta.trim().length > 0) {
             hasAnyReasoning = true;
           }

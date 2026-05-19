@@ -96,6 +96,43 @@ describe('chatFormatsCore inline think parsing', () => {
     });
   });
 
+  it('does not replay terminal chat.completion message content after prior stream deltas already produced visible text', () => {
+    const context = createStreamTransformContext('MiniMax-M2.7-highspeed');
+
+    expect(normalizeUpstreamStreamEvent({
+      object: 'chat.completion.chunk',
+      id: 'chatcmpl-minimax-1',
+      model: 'MiniMax-M2.7-highspeed',
+      choices: [{
+        index: 0,
+        delta: {
+          role: 'assistant',
+          content: '需要我做什么操作？',
+        },
+        finish_reason: null,
+      }],
+    }, context, 'MiniMax-M2.7-highspeed')).toMatchObject({
+      role: 'assistant',
+      contentDelta: '需要我做什么操作？',
+    });
+
+    expect(normalizeUpstreamStreamEvent({
+      object: 'chat.completion',
+      id: 'chatcmpl-minimax-1',
+      model: 'MiniMax-M2.7-highspeed',
+      choices: [{
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: '需要我做什么操作？',
+        },
+        finish_reason: 'stop',
+      }],
+    }, context, 'MiniMax-M2.7-highspeed')).toEqual({
+      finishReason: 'stop',
+    });
+  });
+
   it('accumulates reasoning summary deltas before reconciling response.reasoning_summary_text.done', () => {
     const context = createStreamTransformContext('gpt-test');
 

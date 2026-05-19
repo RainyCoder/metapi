@@ -343,6 +343,39 @@ describe('chat proxy stream behavior', () => {
     expect(recordFailureMock).toHaveBeenCalledTimes(1);
   });
 
+  it('does not duplicate visible text when upstream SSE ends with a full chat.completion snapshot after prior chunks', async () => {
+    const encoder = new TextEncoder();
+    const upstreamBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('data: {"id":"chatcmpl-minimax-stream","object":"chat.completion.chunk","model":"MiniMax-M2.7-highspeed","choices":[{"index":0,"delta":{"role":"assistant","content":"已在记忆中：\\n\\n| 配置项 | 值 |\\n|------|----|\\n| Host | `127.0.0.1` |\\n"},"finish_reason":null}]}\n\n'));
+        controller.enqueue(encoder.encode('data: {"id":"chatcmpl-minimax-stream","object":"chat.completion.chunk","model":"MiniMax-M2.7-highspeed","choices":[{"index":0,"delta":{"content":"需要我做什么操作？"},"finish_reason":"stop"}]}\n\n'));
+        controller.enqueue(encoder.encode('data: {"id":"chatcmpl-minimax-stream","object":"chat.completion","model":"MiniMax-M2.7-highspeed","choices":[{"index":0,"message":{"role":"assistant","content":"已在记忆中：\\n\\n| 配置项 | 值 |\\n|------|----|\\n| Host | `127.0.0.1` |\\n需要我做什么操作？"},"finish_reason":"stop"}]}\n\n'));
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      },
+    });
+
+    fetchMock.mockResolvedValue(new Response(upstreamBody, {
+      status: 200,
+      headers: { 'content-type': 'text/event-stream; charset=utf-8' },
+    }));
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/chat/completions',
+      payload: {
+        model: 'MiniMax-M2.7-highspeed',
+        stream: true,
+        messages: [{ role: 'user', content: '记住配置' }],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const count = (response.body.match(/需要我做什么操作？/g) || []).length;
+    expect(count).toBe(1);
+    expect(response.body).toContain('data: [DONE]');
+  });
+
   it('returns HTTP upstream_error instead of hijacking when streamed chat requests receive empty non-SSE payloads', async () => {
     config.proxyEmptyContentFailEnabled = true;
 

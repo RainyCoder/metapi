@@ -410,6 +410,34 @@ npm run test:watch     # 监听模式
 npm run db:generate    # 生成 Drizzle 迁移文件
 ```
 
+### Docker 开发模式（前后端热更新）
+
+如果你想把开发环境放进 Docker 里运行，并在修改代码后让容器内直接热更新生效，可以使用开发专用 Compose：
+
+```bash
+cd docker
+
+docker compose -f docker-compose.dev.yml up --build
+```
+
+启动后：
+
+- 后端开发服务：`http://127.0.0.1:4000`
+- 前端 Vite 开发服务：`http://127.0.0.1:5173`
+- 局域网其他设备可用你这台机器的内网 IP 访问，例如：`http://192.168.1.10:5173`
+
+说明：
+
+- 源码目录会直接挂载进容器，修改 `src/**`、`scripts/**`、`vite.config.ts` 等文件后会自动生效
+- `node_modules` 使用独立 Docker volume，避免宿主机依赖污染容器
+- 默认写死了开发用 `AUTH_TOKEN=your-admin-token` 和 `PROXY_TOKEN=your-proxy-token`，如需修改可直接编辑 `docker/docker-compose.dev.yml`
+- 如果局域网设备仍无法访问，通常是宿主机防火墙没有放行 `4000` / `5173`
+- 如果你修改了 `package.json` / `package-lock.json`，建议执行一次：
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
 ---
 
 ## 🔗 相关项目
