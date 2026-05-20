@@ -90,6 +90,14 @@ async function flushMicrotasks() {
   });
 }
 
+async function switchToGroupTab(root: ReactTestInstance) {
+  const groupTabButton = findButtonByText(root, '渠道组');
+  await act(async () => {
+    groupTabButton.props.onClick();
+  });
+  await flushMicrotasks();
+}
+
 describe('TokenRoutes grouped source models', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -418,6 +426,8 @@ describe('TokenRoutes grouped source models', () => {
       });
       await flushMicrotasks();
 
+      await switchToGroupTab(root.root);
+
       const expandBtn = root.root.find((node) =>
         node.type === 'div'
         && String(node.props.className || '').includes('route-card-collapsed')
@@ -510,6 +520,8 @@ describe('TokenRoutes grouped source models', () => {
         );
       });
       await flushMicrotasks();
+
+      await switchToGroupTab(root.root);
 
       const expandBtn = root.root.find((node) =>
         node.type === 'div'
@@ -1321,6 +1333,8 @@ describe('TokenRoutes grouped source models', () => {
       expect(collectText(groupChip)).toContain('2');
       expect(collectText(groupChip)).not.toContain('95');
 
+      await switchToGroupTab(root.root);
+
       const routeCard = root.root.find((node) =>
         node.type === 'div'
         && String(node.props.className || '').includes('route-card-collapsed')
@@ -1591,6 +1605,8 @@ describe('TokenRoutes grouped source models', () => {
       });
       await flushMicrotasks();
 
+      await switchToGroupTab(root.root);
+
       const expandBtn = root.root.find((node) =>
         node.type === 'div'
         && String(node.props.className || '').includes('route-card-collapsed')
@@ -1685,6 +1701,8 @@ describe('TokenRoutes grouped source models', () => {
         );
       });
       await flushMicrotasks();
+
+      await switchToGroupTab(root.root);
 
       const expandBtn = root.root.find((node) =>
         node.type === 'div'

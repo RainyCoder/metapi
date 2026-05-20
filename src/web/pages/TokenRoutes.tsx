@@ -95,6 +95,7 @@ const EMPTY_ROUTE_FORM: RouteEditorForm = {
 };
 const DESKTOP_DETAIL_ENTER_MS = 260;
 const DESKTOP_DETAIL_COLLAPSE_MS = 200;
+type RouteListTab = 'channels' | 'groups';
 
 function prefersReducedMotion(): boolean {
   return typeof globalThis.matchMedia === 'function'
@@ -197,6 +198,7 @@ export default function TokenRoutes() {
   const [showZeroChannelRoutes, setShowZeroChannelRoutes] = useState(false);
   const [sortBy, setSortBy] = useState<RouteSortBy>('channelCount');
   const [sortDir, setSortDir] = useState<RouteSortDir>('desc');
+  const [activeRouteTab, setActiveRouteTab] = useState<RouteListTab>('channels');
 
   const [showManual, setShowManual] = useState(false);
   const [form, setForm] = useState<RouteEditorForm>(EMPTY_ROUTE_FORM);
@@ -796,8 +798,16 @@ export default function TokenRoutes() {
     return listVisibleRoutes.find((route) => route.id === activeGroupFilter) || null;
   }, [activeGroupFilter, listVisibleRoutes]);
 
+  const tabScopedRoutes = useMemo(() => (
+    listVisibleRoutes.filter((route) => (
+      activeRouteTab === 'groups'
+        ? isExplicitGroupRoute(route)
+        : !isExplicitGroupRoute(route)
+    ))
+  ), [activeRouteTab, listVisibleRoutes]);
+
   const sortedRoutes = useMemo(() => (
-    [...listVisibleRoutes].sort((a, b) => {
+    [...tabScopedRoutes].sort((a, b) => {
       if (sortBy === 'channelCount') {
         const countCmp = a.channelCount - b.channelCount;
         if (countCmp !== 0) return sortDir === 'asc' ? countCmp : -countCmp;
@@ -806,7 +816,7 @@ export default function TokenRoutes() {
       const nameCmp = a.modelPattern.localeCompare(b.modelPattern, undefined, { sensitivity: 'base' });
       return sortDir === 'asc' ? nameCmp : -nameCmp;
     })
-  ), [listVisibleRoutes, sortBy, sortDir]);
+  ), [tabScopedRoutes, sortBy, sortDir]);
 
   // Shared base filter: all filters EXCEPT enabledFilter
   const baseFilteredRoutes = useMemo(() => {
@@ -876,6 +886,14 @@ export default function TokenRoutes() {
     );
   }, [filteredRoutes]);
 
+  useEffect(() => {
+    setActiveGroupFilter(null);
+    setSelectedRouteIds(new Set());
+    setBatchSelectMode(false);
+    setExpandedRouteIds([]);
+    setClosingDesktopDetailRouteIds([]);
+  }, [activeRouteTab]);
+
   const toggleBatchSelectMode = () => {
     setBatchSelectMode((prev) => {
       if (prev) setSelectedRouteIds(new Set());
@@ -935,6 +953,14 @@ export default function TokenRoutes() {
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
 
   const shouldShowLoadMore = filteredRoutes.length > 0 && visibleRouteCount < filteredRoutes.length;
+  const emptyStateTitle = routeSummaries.length === 0
+    ? (activeRouteTab === 'groups' ? '暂无渠道组' : '暂无渠道')
+    : (activeRouteTab === 'groups' ? '没有匹配的渠道组' : '没有匹配的渠道');
+  const emptyStateDescription = routeSummaries.length === 0
+    ? (activeRouteTab === 'groups'
+      ? '点击"新建群组"创建第一个显式渠道组。'
+      : '点击"自动重建"可按当前模型可用性生成路由。')
+    : '请调整品牌筛选、搜索词或排序条件。';
 
   useEffect(() => {
     const el = loadMoreSentinelRef.current;
@@ -1710,6 +1736,40 @@ export default function TokenRoutes() {
         onCancel={handleCancelEditRoute}
       />
 
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 12,
+          padding: 4,
+          border: '1px solid var(--color-border)',
+          borderRadius: 12,
+          background: 'var(--color-bg-card)',
+          width: 'fit-content',
+          maxWidth: '100%',
+        }}
+      >
+        <button
+          type="button"
+          aria-pressed={activeRouteTab === 'channels'}
+          className={`btn ${activeRouteTab === 'channels' ? 'btn-primary' : 'btn-ghost'}`}
+          style={{ padding: '7px 14px', borderRadius: 8 }}
+          onClick={() => setActiveRouteTab('channels')}
+        >
+          {tr('渠道')}
+        </button>
+        <button
+          type="button"
+          aria-pressed={activeRouteTab === 'groups'}
+          className={`btn ${activeRouteTab === 'groups' ? 'btn-primary' : 'btn-ghost'}`}
+          style={{ padding: '7px 14px', borderRadius: 8 }}
+          onClick={() => setActiveRouteTab('groups')}
+        >
+          {tr('渠道组')}
+        </button>
+      </div>
+
       {/* Route card grid */}
       {/* Batch selection floating bar */}
       {batchSelectMode && (
@@ -2012,12 +2072,8 @@ export default function TokenRoutes() {
                 d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
               />
             </svg>
-            <div className="empty-state-title">{routeSummaries.length === 0 ? '暂无路由' : '没有匹配的路由'}</div>
-            <div className="empty-state-desc">
-              {routeSummaries.length === 0
-                ? '点击"自动重建"可按当前模型可用性生成路由。'
-                : '请调整品牌筛选、搜索词或排序条件。'}
-            </div>
+            <div className="empty-state-title">{emptyStateTitle}</div>
+            <div className="empty-state-desc">{emptyStateDescription}</div>
           </div>
         </div>
       )}
