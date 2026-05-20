@@ -39,6 +39,7 @@ import { extractClientIp, findInvalidIpAllowlistEntries, isIpAllowed } from '../
 import { invalidateSiteProxyCache, normalizeSiteProxyUrl, withExplicitProxyRequestInit } from '../../services/siteProxy.js';
 import { performFactoryReset } from '../../services/factoryResetService.js';
 import { normalizeLogCleanupRetentionDays } from '../../shared/logCleanupRetentionDays.js';
+import { parseStringListSetting } from '../../shared/stringListSetting.js';
 import { stopProxyLogRetentionService } from '../../services/proxyLogRetentionService.js';
 import {
   startModelAvailabilityProbeScheduler,
@@ -268,18 +269,7 @@ async function testSystemProxyConnectivity(proxyUrl: string) {
 }
 
 function toStringList(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => (typeof item === 'string' ? item.trim() : ''))
-      .filter((item) => item.length > 0);
-  }
-  if (typeof value === 'string') {
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-  }
-  return [];
+  return parseStringListSetting(value);
 }
 
 function parseProxyErrorKeywords(value: unknown): string[] {
@@ -1425,7 +1415,7 @@ export async function settingsRoutes(app: FastifyInstance) {
         changedLabels.push('全局品牌屏蔽');
       }
       config.globalBlockedBrands = uniqueBrands;
-      upsertSetting('global_blocked_brands', JSON.stringify(uniqueBrands));
+      upsertSetting('global_blocked_brands', uniqueBrands);
       if (prev !== next) {
         startBackgroundTask(
           {
@@ -1450,7 +1440,7 @@ export async function settingsRoutes(app: FastifyInstance) {
         changedLabels.push('全局模型白名单');
       }
       config.globalAllowedModels = uniqueModels;
-      upsertSetting('global_allowed_models', JSON.stringify(uniqueModels));
+      upsertSetting('global_allowed_models', uniqueModels);
       if (prev !== next) {
         startBackgroundTask(
           {

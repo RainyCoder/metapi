@@ -3,6 +3,7 @@ import {
   normalizeTokenRouterFailureCooldownMaxSec,
 } from './config.js';
 import { normalizePayloadRulesConfig } from './services/payloadRules.js';
+import { parseStringListSetting } from './shared/stringListSetting.js';
 import { normalizeLogCleanupRetentionDays } from './shared/logCleanupRetentionDays.js';
 
 export function parseSettingFromMap<T>(settingsMap: Map<string, string>, key: string): T | undefined {
@@ -13,21 +14,6 @@ export function parseSettingFromMap<T>(settingsMap: Map<string, string>, key: st
   } catch {
     return undefined;
   }
-}
-
-function toStringList(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => (typeof item === 'string' ? item.trim() : ''))
-      .filter((item) => item.length > 0);
-  }
-  if (typeof value === 'string') {
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-  }
-  return [];
 }
 
 export function applyRuntimeSettings(settingsMap: Map<string, string>) {
@@ -62,7 +48,7 @@ export function applyRuntimeSettings(settingsMap: Map<string, string>) {
 
   const proxyErrorKeywords = parseSettingFromMap<string[] | string>(settingsMap, 'proxy_error_keywords');
   if (proxyErrorKeywords !== undefined) {
-    config.proxyErrorKeywords = toStringList(proxyErrorKeywords);
+    config.proxyErrorKeywords = parseStringListSetting(proxyErrorKeywords);
   }
 
   const proxyEmptyContentFailEnabled = parseSettingFromMap<boolean>(settingsMap, 'proxy_empty_content_fail_enabled');
@@ -77,7 +63,7 @@ export function applyRuntimeSettings(settingsMap: Map<string, string>) {
 
   const globalAllowedModels = parseSettingFromMap<string[] | string>(settingsMap, 'global_allowed_models');
   if (globalAllowedModels !== undefined) {
-    config.globalAllowedModels = toStringList(globalAllowedModels);
+    config.globalAllowedModels = parseStringListSetting(globalAllowedModels);
   }
 
   const codexHeaderDefaults = parseSettingFromMap<unknown>(settingsMap, 'codex_header_defaults');
@@ -289,6 +275,6 @@ export function applyRuntimeSettings(settingsMap: Map<string, string>) {
 
   const adminIpAllowlist = parseSettingFromMap<string[] | string>(settingsMap, 'admin_ip_allowlist');
   if (adminIpAllowlist !== undefined) {
-    config.adminIpAllowlist = toStringList(adminIpAllowlist);
+    config.adminIpAllowlist = parseStringListSetting(adminIpAllowlist);
   }
 }

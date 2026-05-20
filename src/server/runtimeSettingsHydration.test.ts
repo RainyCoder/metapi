@@ -35,6 +35,22 @@ describe('applyRuntimeSettings', () => {
     expect(config.globalAllowedModels).toEqual(['gpt-5.4', 'claude-3.7-sonnet']);
   });
 
+  it('recovers stringified string-list settings that were double JSON encoded', () => {
+    config.globalAllowedModels = ['stale-model'];
+    config.adminIpAllowlist = ['127.0.0.1'];
+    config.proxyErrorKeywords = ['timeout'];
+
+    applyRuntimeSettings(new Map([
+      ['global_allowed_models', JSON.stringify(JSON.stringify(['gpt-4o', ' claude-3.7-sonnet ']))],
+      ['admin_ip_allowlist', JSON.stringify(JSON.stringify(['10.0.0.1', ' 10.0.0.2 ']))],
+      ['proxy_error_keywords', JSON.stringify(JSON.stringify(['quota', ' timeout ']))],
+    ]));
+
+    expect(config.globalAllowedModels).toEqual(['gpt-4o', 'claude-3.7-sonnet']);
+    expect(config.adminIpAllowlist).toEqual(['10.0.0.1', '10.0.0.2']);
+    expect(config.proxyErrorKeywords).toEqual(['quota', 'timeout']);
+  });
+
   it('normalizes smtpPort to a positive integer during hydration', () => {
     config.smtpPort = 587;
 

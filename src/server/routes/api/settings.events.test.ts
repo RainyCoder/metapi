@@ -133,6 +133,24 @@ describe('settings and auth events', () => {
     expect(savedInterval?.value).toBe(JSON.stringify(8));
   });
 
+  it('persists global allowed models as a JSON array instead of a JSON string', async () => {
+    const updateResponse = await app.inject({
+      method: 'PUT',
+      url: '/api/settings/runtime',
+      payload: {
+        globalAllowedModels: ['gpt-4o', ' claude-3.7-sonnet ', 'gpt-4o'],
+      },
+    });
+
+    expect(updateResponse.statusCode).toBe(200);
+    const updated = updateResponse.json() as { globalAllowedModels?: string[] };
+    expect(updated.globalAllowedModels).toEqual(['gpt-4o', 'claude-3.7-sonnet']);
+    expect(config.globalAllowedModels).toEqual(['gpt-4o', 'claude-3.7-sonnet']);
+
+    const saved = await db.select().from(schema.settings).where(eq(schema.settings.key, 'global_allowed_models')).get();
+    expect(saved?.value).toBe(JSON.stringify(['gpt-4o', 'claude-3.7-sonnet']));
+  });
+
   it('persists codex upstream websocket and session lease settings from runtime settings', async () => {
     const updateResponse = await app.inject({
       method: 'PUT',
