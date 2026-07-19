@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Run database migrations: `npm run db:migrate`
 - Start backend + web dev servers: `npm run dev`
   - Fastify server runs on `PORT` (default `4000`)
-  - Vite dev server runs on `5173` and proxies `/api`, `/monitor-proxy`, and `/v1` to the backend
+  - Vite dev server runs on `5173` and proxies `/api` and `/v1` to the backend
 - Start desktop development: `npm run dev:desktop`
 - Build all targets: `npm run build`
 - Build individual targets:

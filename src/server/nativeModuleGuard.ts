@@ -7,6 +7,20 @@ type RebuildCommand = {
   args: string[];
 };
 
+type BetterSqliteDatabase = {
+  close: () => void;
+};
+
+type BetterSqliteConstructor = new (filename: string) => BetterSqliteDatabase;
+
+export function assertBetterSqliteRuntimeCompatible(Database: BetterSqliteConstructor): void {
+  // better-sqlite3 loads its native binding when a database is opened, not when
+  // the JavaScript package is imported. An in-memory probe therefore catches ABI
+  // mismatches before the application database initialization path is reached.
+  const database = new Database(':memory:');
+  database.close();
+}
+
 export function isNodeModuleVersionMismatch(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const code = 'code' in error ? String((error as { code?: unknown }).code || '') : '';

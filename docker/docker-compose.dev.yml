@@ -3,11 +3,20 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.dev
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+        NPM_FETCH_RETRIES: ${NPM_FETCH_RETRIES:-5}
+        NPM_FETCH_RETRY_MINTIMEOUT: ${NPM_FETCH_RETRY_MINTIMEOUT:-20000}
+        NPM_FETCH_RETRY_MAXTIMEOUT: ${NPM_FETCH_RETRY_MAXTIMEOUT:-120000}
+        NPM_FETCH_TIMEOUT: ${NPM_FETCH_TIMEOUT:-120000}
+        NPM_MAXSOCKETS: ${NPM_MAXSOCKETS:-5}
+        NPM_CI_ATTEMPTS: ${NPM_CI_ATTEMPTS:-3}
     container_name: metapi-dev
     working_dir: /app
     ports:
-      - "4000:4000"
-      - "5173:5173"
+      # Keep one stable host entrypoint in development. Vite serves the page on
+      # container port 5173 and proxies /api and /v1 to Fastify on port 4000.
+      - "4000:5173"
     volumes:
       - ..:/app
       - metapi-dev-node-modules:/app/node_modules
@@ -19,6 +28,7 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
+      VITE_ALLOWED_HOSTS: ${VITE_ALLOWED_HOSTS:-}
     restart: unless-stopped
     stdin_open: true
     tty: true

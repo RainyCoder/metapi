@@ -152,10 +152,6 @@ The AI ecosystem is seeing a growing number of aggregation relay stations based 
       <img src="docs/screenshots/proxy-logs.png" alt="proxy-logs" style="width:100%;height:auto;"/>
       <div><b>Usage Logs</b> — Proxy request logs and cost breakdown</div>
     </td>
-    <td align="center">
-      <img src="docs/screenshots/monitor.png" alt="monitor" style="width:100%;height:auto;"/>
-      <div><b>Availability Monitor</b> — Channel health real-time monitoring</div>
-    </td>
   </tr>
   <tr>
     <td align="center">

@@ -1,4 +1,6 @@
-FROM node:22-bookworm-slim
+# Development follows the repository runtime contract. The production image
+# remains on Node 22 separately because its release matrix includes linux/arm/v7.
+FROM node:25-bookworm-slim
 
 WORKDIR /app
 
@@ -9,8 +11,41 @@ RUN apt-get update \
 ENV PYTHON=/usr/bin/python3
 ENV NODE_ENV=development
 
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ARG NPM_FETCH_RETRIES=5
+ARG NPM_FETCH_RETRY_MINTIMEOUT=20000
+ARG NPM_FETCH_RETRY_MAXTIMEOUT=120000
+ARG NPM_FETCH_TIMEOUT=120000
+ARG NPM_MAXSOCKETS=5
+ARG NPM_CI_ATTEMPTS=3
+
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# Desktop Electron binaries are not used inside the web/server development container.
+# Skip dependency lifecycle scripts to avoid downloading them, then rebuild only the
+# native packages required by the development services below.
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+  set -eu; \
+  attempt=1; \
+  while true; do \
+    if npm ci \
+      --ignore-scripts \
+      --no-audit \
+      --no-fund \
+      --prefer-offline \
+      --registry="${NPM_REGISTRY}" \
+      --fetch-retries="${NPM_FETCH_RETRIES}" \
+      --fetch-retry-mintimeout="${NPM_FETCH_RETRY_MINTIMEOUT}" \
+      --fetch-retry-maxtimeout="${NPM_FETCH_RETRY_MAXTIMEOUT}" \
+      --fetch-timeout="${NPM_FETCH_TIMEOUT}" \
+      --maxsockets="${NPM_MAXSOCKETS}"; then \
+      break; \
+    fi; \
+    if [ "${attempt}" -ge "${NPM_CI_ATTEMPTS}" ]; then \
+      exit 1; \
+    fi; \
+    attempt=$((attempt + 1)); \
+    echo "npm ci failed; retrying with the cached packages (attempt ${attempt}/${NPM_CI_ATTEMPTS})..."; \
+  done
 RUN npm rebuild esbuild sharp better-sqlite3 --no-audit --no-fund
 
 EXPOSE 4000

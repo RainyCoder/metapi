@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import {
+  assertBetterSqliteRuntimeCompatible,
   buildBetterSqliteRebuildCommand,
   isNodeModuleVersionMismatch,
 } from '../../src/server/nativeModuleGuard.js';
@@ -28,7 +29,8 @@ function run(command: string, args: string[]) {
 
 async function ensureBetterSqliteCompatible() {
   try {
-    await import('better-sqlite3');
+    const { default: Database } = await import('better-sqlite3');
+    assertBetterSqliteRuntimeCompatible(Database);
     return;
   } catch (error) {
     if (!isNodeModuleVersionMismatch(error)) {
@@ -41,7 +43,8 @@ async function ensureBetterSqliteCompatible() {
   await run(rebuild.command, rebuild.args);
 
   try {
-    await import('better-sqlite3');
+    const { default: Database } = await import('better-sqlite3');
+    assertBetterSqliteRuntimeCompatible(Database);
   } catch (error) {
     throw new Error(
       `better-sqlite3 is still incompatible after rebuild: ${error instanceof Error ? error.message : String(error)}`,

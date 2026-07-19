@@ -43,11 +43,29 @@ describe('docker workflows', () => {
 
   it('keeps server docker builds isolated from desktop packaging dependencies', () => {
     const dockerfile = readFileSync(resolve(process.cwd(), 'docker/Dockerfile'), 'utf8');
+    const devDockerfile = readFileSync(resolve(process.cwd(), 'docker/Dockerfile.dev'), 'utf8');
+    const devCompose = readFileSync(resolve(process.cwd(), 'docker/docker-compose.dev.yml'), 'utf8');
 
     expect(dockerfile).toContain('npm ci --ignore-scripts --no-audit --no-fund');
     expect(dockerfile).toContain('npm rebuild esbuild sharp better-sqlite3 --no-audit --no-fund');
     expect(dockerfile).not.toContain('npm ci --no-audit --no-fund');
     expect(dockerfile).toContain('RUN npm run build:web && npm run build:server');
     expect(dockerfile).toContain('npm prune --omit=dev --no-audit --no-fund');
+
+    expect(devDockerfile).toContain('--ignore-scripts');
+    expect(devDockerfile).toContain('FROM node:25-bookworm-slim');
+    expect(devDockerfile).toContain('--registry="${NPM_REGISTRY}"');
+    expect(devDockerfile).toContain('--fetch-retries="${NPM_FETCH_RETRIES}"');
+    expect(devDockerfile).toContain('--fetch-timeout="${NPM_FETCH_TIMEOUT}"');
+    expect(devDockerfile).toContain('--maxsockets="${NPM_MAXSOCKETS}"');
+    expect(devDockerfile).toContain('RUN --mount=type=cache,target=/root/.npm,sharing=locked');
+    expect(devDockerfile).toContain('retrying with the cached packages');
+    expect(devDockerfile).toContain('npm rebuild esbuild sharp better-sqlite3 --no-audit --no-fund');
+    expect(devDockerfile).not.toContain('RUN npm ci --no-audit --no-fund');
+    expect(devCompose).not.toContain('HTTP_PROXY:');
+    expect(devCompose).not.toContain('HTTPS_PROXY:');
+    expect(devCompose).toContain('- "4000:5173"');
+    expect(devCompose).not.toContain('- "4000:4000"');
+    expect(devCompose).not.toContain('- "5173:5173"');
   });
 });

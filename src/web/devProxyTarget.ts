@@ -13,3 +13,12 @@ export function resolveDevProxyTarget(env: ProxyEnv): string {
 
   return 'http://localhost:4000';
 }
+
+export function resolveDevAllowedHosts(env: ProxyEnv): string[] {
+  return Array.from(new Set(
+    (env.VITE_ALLOWED_HOSTS || '')
+      .split(',')
+      .map((host) => host.trim())
+      .filter(Boolean),
+  ));
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertBetterSqliteRuntimeCompatible,
   buildBetterSqliteRebuildCommand,
   isNodeModuleVersionMismatch,
 } from './nativeModuleGuard.js';
@@ -21,6 +22,23 @@ describe('nativeModuleGuard', () => {
     );
 
     expect(isNodeModuleVersionMismatch(error)).toBe(false);
+  });
+
+  it('opens and closes an in-memory database to force the native binding to load', () => {
+    const calls: string[] = [];
+    class FakeDatabase {
+      constructor(filename: string) {
+        calls.push(`open:${filename}`);
+      }
+
+      close() {
+        calls.push('close');
+      }
+    }
+
+    assertBetterSqliteRuntimeCompatible(FakeDatabase);
+
+    expect(calls).toEqual(['open::memory:', 'close']);
   });
 
   it('builds a rebuild command for the current npm client', () => {

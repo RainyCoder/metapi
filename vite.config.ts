@@ -1,11 +1,12 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { resolveDevProxyTarget } from './src/web/devProxyTarget';
+import { resolveDevAllowedHosts, resolveDevProxyTarget } from './src/web/devProxyTarget';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const proxyTarget = resolveDevProxyTarget(env);
+  const allowedHosts = resolveDevAllowedHosts(env);
   console.log(`[vite] dev proxy target: ${proxyTarget}`);
 
   const frontendPort = Number.parseInt(env.FRONTEND_PORT || env.VITE_FRONTEND_PORT || '', 10);
@@ -32,12 +33,9 @@ export default defineConfig(({ mode }) => {
     server: {
       host: frontendHost,
       port: resolvedFrontendPort,
+      allowedHosts: allowedHosts.length > 0 ? allowedHosts : undefined,
       proxy: {
         '^/api($|/)': {
-          target: proxyTarget,
-          changeOrigin: true,
-        },
-        '^/monitor-proxy($|/)': {
           target: proxyTarget,
           changeOrigin: true,
         },
